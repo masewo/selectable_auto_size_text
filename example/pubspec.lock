@@ -8,15 +8,6 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "2.8.1"
-  auto_size_text:
-    dependency: transitive
-    description:
-      path: "."
-      ref: HEAD
-      resolved-ref: "10ec2d62a2a3cf5b1cbdba51781e8565772f7399"
-      url: "https://github.com/masewo/auto_size_text.git"
-    source: git
-    version: "3.0.0-nullsafety.0"
   boolean_selector:
     dependency: transitive
     description:

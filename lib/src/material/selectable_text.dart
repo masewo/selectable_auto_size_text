@@ -18,7 +18,7 @@ import 'package:flutter/cupertino.dart'
         TextSelectionGestureDetectorBuilder;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/rendering.dart';
+import 'package:flutter/rendering.dart' hide RenderParagraph;
 import 'package:flutter/material.dart'
     hide
         materialTextSelectionControls,
@@ -29,6 +29,7 @@ import 'package:flutter/material.dart'
         SelectionChangedCallback,
         EditableTextState,
         EditableText,
+        SelectableText,
         TextSelectionGestureDetectorBuilderDelegate,
         TextSelectionGestureDetectorBuilder;
 import 'package:selectable_auto_size_text/src/cupertino/desktop_text_selection.dart';

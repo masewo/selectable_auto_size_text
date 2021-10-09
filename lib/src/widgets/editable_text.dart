@@ -6,7 +6,6 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui hide TextStyle;
 
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart' show DragStartBehavior;
 import 'package:flutter/material.dart'
@@ -16,7 +15,7 @@ import 'package:flutter/material.dart'
         ClipboardStatusNotifier,
         TextSelectionHandleType,
         ClipboardStatus;
-import 'package:flutter/rendering.dart';
+import 'package:flutter/rendering.dart' hide RenderParagraph;
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart'
@@ -26,6 +25,7 @@ import 'package:flutter/widgets.dart'
         ClipboardStatusNotifier,
         TextSelectionHandleType,
         ClipboardStatus;
+import 'package:selectable_auto_size_text/src/rendering/paragraph.dart';
 import 'package:selectable_auto_size_text/src/widgets/text_selection.dart';
 
 export 'package:flutter/services.dart'
@@ -1597,7 +1597,7 @@ class EditableTextState extends State<EditableText>
         WidgetsBindingObserver,
         TickerProviderStateMixin<EditableText>,
         TextSelectionDelegate
-    implements TextInputClient, AutofillClient, TextEditingActionTarget {
+    implements TextInputClient, AutofillClient {
   Timer? _cursorTimer;
   bool _targetCursorVisibility = false;
   final ValueNotifier<bool> _cursorVisibilityNotifier =
@@ -1610,8 +1610,6 @@ class EditableTextState extends State<EditableText>
   TextSelectionOverlay? _selectionOverlay;
 
   ScrollController? _scrollController;
-
-  late AnimationController _cursorBlinkOpacityController;
 
   final LayerLink _toolbarLayerLink = LayerLink();
   final LayerLink _startHandleLayerLink = LayerLink();
@@ -1647,17 +1645,8 @@ class EditableTextState extends State<EditableText>
   // to ease in and out.
   static const Duration _fadeDuration = Duration(milliseconds: 250);
 
-  // The time it takes for the floating cursor to snap to the text aligned
-  // cursor position after the user has finished placing it.
-  static const Duration _floatingCursorResetTime = Duration(milliseconds: 125);
-
-  late AnimationController _floatingCursorResetController;
-
   @override
   bool get wantKeepAlive => widget.focusNode.hasFocus;
-
-  Color get _cursorColor =>
-      widget.cursorColor.withOpacity(_cursorBlinkOpacityController.value);
 
   @override
   bool get cutEnabled => widget.toolbarOptions.cut && !widget.readOnly;
@@ -1690,11 +1679,6 @@ class EditableTextState extends State<EditableText>
     _scrollController!.addListener(() {
       _selectionOverlay?.updateForScroll();
     });
-    _cursorBlinkOpacityController =
-        AnimationController(vsync: this, duration: _fadeDuration);
-    _cursorBlinkOpacityController.addListener(_onCursorColorTick);
-    _floatingCursorResetController = AnimationController(vsync: this);
-    _floatingCursorResetController.addListener(_onFloatingCursorResetTick);
     _cursorVisibilityNotifier.value = widget.showCursor;
   }
 
@@ -1779,11 +1763,8 @@ class EditableTextState extends State<EditableText>
   void dispose() {
     _currentAutofillScope?.unregister(autofillId);
     widget.controller.removeListener(_didChangeTextEditingValue);
-    _cursorBlinkOpacityController.removeListener(_onCursorColorTick);
-    _floatingCursorResetController.removeListener(_onFloatingCursorResetTick);
     _closeInputConnectionIfNeeded();
     assert(!_hasInputConnection);
-    _stopCursorTimer();
     assert(_cursorTimer == null);
     _selectionOverlay?.dispose();
     _selectionOverlay = null;
@@ -1860,12 +1841,6 @@ class EditableTextState extends State<EditableText>
     // changes to `textEditingValue` do not trigger the behavior even if the
     // text field is focused.
     _scheduleShowCaretOnScreen();
-    if (_hasInputConnection) {
-      // To keep the cursor from blinking while typing, we want to restart the
-      // cursor timer every time a new character is typed.
-      _stopCursorTimer(resetCharTicks: false);
-      _startCursorTimer();
-    }
   }
 
   @override
@@ -1916,84 +1891,8 @@ class EditableTextState extends State<EditableText>
   // The most recent position of the floating cursor.
   Offset? _lastBoundedOffset;
 
-  // Because the center of the cursor is preferredLineHeight / 2 below the touch
-  // origin, but the touch origin is used to determine which line the cursor is
-  // on, we need this offset to correctly render and move the cursor.
-  Offset get _floatingCursorOffset =>
-      Offset(0, renderEditable.preferredLineHeight / 2);
-
   @override
   void updateFloatingCursor(RawFloatingCursorPoint point) {
-    switch (point.state) {
-      case FloatingCursorDragState.Start:
-        if (_floatingCursorResetController.isAnimating) {
-          _floatingCursorResetController.stop();
-          _onFloatingCursorResetTick();
-        }
-        // We want to send in points that are centered around a (0,0) origin, so
-        // we cache the position.
-        _pointOffsetOrigin = point.offset;
-
-        final TextPosition currentTextPosition =
-            TextPosition(offset: renderEditable.selection!.baseOffset);
-        _startCaretRect =
-            renderEditable.getLocalRectForCaret(currentTextPosition);
-
-        _lastBoundedOffset = _startCaretRect!.center - _floatingCursorOffset;
-        _lastTextPosition = currentTextPosition;
-        renderEditable.setFloatingCursor(
-            point.state, _lastBoundedOffset!, _lastTextPosition!);
-        break;
-      case FloatingCursorDragState.Update:
-        final Offset centeredPoint = point.offset! - _pointOffsetOrigin!;
-        final Offset rawCursorOffset =
-            _startCaretRect!.center + centeredPoint - _floatingCursorOffset;
-
-        _lastBoundedOffset = renderEditable
-            .calculateBoundedFloatingCursorOffset(rawCursorOffset);
-        _lastTextPosition = renderEditable.getPositionForPoint(renderEditable
-            .localToGlobal(_lastBoundedOffset! + _floatingCursorOffset));
-        renderEditable.setFloatingCursor(
-            point.state, _lastBoundedOffset!, _lastTextPosition!);
-        break;
-      case FloatingCursorDragState.End:
-        // We skip animation if no update has happened.
-        if (_lastTextPosition != null && _lastBoundedOffset != null) {
-          _floatingCursorResetController.value = 0.0;
-          _floatingCursorResetController.animateTo(1.0,
-              duration: _floatingCursorResetTime, curve: Curves.decelerate);
-        }
-        break;
-    }
-  }
-
-  void _onFloatingCursorResetTick() {
-    final Offset finalPosition =
-        renderEditable.getLocalRectForCaret(_lastTextPosition!).centerLeft -
-            _floatingCursorOffset;
-    if (_floatingCursorResetController.isCompleted) {
-      renderEditable.setFloatingCursor(
-          FloatingCursorDragState.End, finalPosition, _lastTextPosition!);
-      if (_lastTextPosition!.offset != renderEditable.selection!.baseOffset)
-        // The cause is technically the force cursor, but the cause is listed as tap as the desired functionality is the same.
-        _handleSelectionChanged(
-            TextSelection.collapsed(offset: _lastTextPosition!.offset),
-            SelectionChangedCause.forcePress);
-      _startCaretRect = null;
-      _lastTextPosition = null;
-      _pointOffsetOrigin = null;
-      _lastBoundedOffset = null;
-    } else {
-      final double lerpValue = _floatingCursorResetController.value;
-      final double lerpX =
-          ui.lerpDouble(_lastBoundedOffset!.dx, finalPosition.dx, lerpValue)!;
-      final double lerpY =
-          ui.lerpDouble(_lastBoundedOffset!.dy, finalPosition.dy, lerpValue)!;
-
-      renderEditable.setFloatingCursor(FloatingCursorDragState.Update,
-          Offset(lerpX, lerpY), _lastTextPosition!,
-          resetLerpValue: lerpValue);
-    }
   }
 
   @pragma('vm:notify-debugger-on-exception')
@@ -2183,7 +2082,6 @@ class EditableTextState extends State<EditableText>
                   _isInAutofillContext || _needsAutofill));
       _textInputConnection!.show();
       _updateSizeAndTransform();
-      _updateComposingRectIfNeeded();
       _updateCaretRectIfNeeded();
       if (_needsAutofill) {
         // Request autofill AFTER the size and the transform have been sent to
@@ -2311,12 +2209,6 @@ class EditableTextState extends State<EditableText>
         context:
             ErrorDescription('while calling onSelectionChanged for $cause'),
       ));
-    }
-
-    // To keep the cursor from blinking while it moves, restart the timer here.
-    if (_cursorTimer != null) {
-      _stopCursorTimer(resetCharTicks: false);
-      _startCursorTimer();
     }
   }
 
@@ -2459,18 +2351,6 @@ class EditableTextState extends State<EditableText>
     endBatchEdit();
   }
 
-  void _onCursorColorTick() {
-    renderEditable.cursorColor =
-        widget.cursorColor.withOpacity(_cursorBlinkOpacityController.value);
-    _cursorVisibilityNotifier.value =
-        widget.showCursor && _cursorBlinkOpacityController.value > 0;
-  }
-
-  /// Whether the blinking cursor is actually visible at this precise moment
-  /// (it's hidden half the time, since it blinks).
-  @visibleForTesting
-  bool get cursorCurrentlyVisible => _cursorBlinkOpacityController.value > 0;
-
   /// The cursor blink interval (the amount of time the cursor is in the "on"
   /// state or the "off" state). A complete cursor blink period is twice this
   /// value (half on, half off).
@@ -2484,73 +2364,8 @@ class EditableTextState extends State<EditableText>
   int _obscureShowCharTicksPending = 0;
   int? _obscureLatestCharIndex;
 
-  void _cursorTick(Timer timer) {
-    _targetCursorVisibility = !_targetCursorVisibility;
-    final double targetOpacity = _targetCursorVisibility ? 1.0 : 0.0;
-    if (widget.cursorOpacityAnimates) {
-      // If we want to show the cursor, we will animate the opacity to the value
-      // of 1.0, and likewise if we want to make it disappear, to 0.0. An easing
-      // curve is used for the animation to mimic the aesthetics of the native
-      // iOS cursor.
-      //
-      // These values and curves have been obtained through eyeballing, so are
-      // likely not exactly the same as the values for native iOS.
-      _cursorBlinkOpacityController.animateTo(targetOpacity,
-          curve: Curves.easeOut);
-    } else {
-      _cursorBlinkOpacityController.value = targetOpacity;
-    }
-
-    if (_obscureShowCharTicksPending > 0) {
-      setState(() {
-        _obscureShowCharTicksPending--;
-      });
-    }
-  }
-
-  void _cursorWaitForStart(Timer timer) {
-    assert(_kCursorBlinkHalfPeriod > _fadeDuration);
-    assert(!EditableText.debugDeterministicCursor);
-    _cursorTimer?.cancel();
-    _cursorTimer = Timer.periodic(_kCursorBlinkHalfPeriod, _cursorTick);
-  }
-
-  void _startCursorTimer() {
-    assert(_cursorTimer == null);
-    _targetCursorVisibility = true;
-    _cursorBlinkOpacityController.value = 1.0;
-    if (EditableText.debugDeterministicCursor) return;
-    if (widget.cursorOpacityAnimates) {
-      _cursorTimer =
-          Timer.periodic(_kCursorBlinkWaitForStart, _cursorWaitForStart);
-    } else {
-      _cursorTimer = Timer.periodic(_kCursorBlinkHalfPeriod, _cursorTick);
-    }
-  }
-
-  void _stopCursorTimer({bool resetCharTicks = true}) {
-    _cursorTimer?.cancel();
-    _cursorTimer = null;
-    _targetCursorVisibility = false;
-    _cursorBlinkOpacityController.value = 0.0;
-    if (EditableText.debugDeterministicCursor) return;
-    if (resetCharTicks) _obscureShowCharTicksPending = 0;
-    if (widget.cursorOpacityAnimates) {
-      _cursorBlinkOpacityController.stop();
-      _cursorBlinkOpacityController.value = 0.0;
-    }
-  }
-
-  void _startOrStopCursorTimerIfNeeded() {
-    if (_cursorTimer == null && _hasFocus && _value.selection.isCollapsed)
-      _startCursorTimer();
-    else if (_cursorTimer != null &&
-        (!_hasFocus || !_value.selection.isCollapsed)) _stopCursorTimer();
-  }
-
   void _didChangeTextEditingValue() {
     _updateRemoteEditingValueIfNeeded();
-    _startOrStopCursorTimerIfNeeded();
     _updateOrDisposeSelectionOverlayIfNeeded();
     // TODO(abarth): Teach RenderEditable about ValueNotifier<TextEditingValue>
     // to avoid this setState().
@@ -2561,7 +2376,6 @@ class EditableTextState extends State<EditableText>
 
   void _handleFocusChanged() {
     _openOrCloseInputConnectionIfNeeded();
-    _startOrStopCursorTimerIfNeeded();
     _updateOrDisposeSelectionOverlayIfNeeded();
     if (_hasFocus) {
       // Listen for changing viewInsets, which indicates keyboard showing up.
@@ -2594,31 +2408,6 @@ class EditableTextState extends State<EditableText>
     }
   }
 
-  // Sends the current composing rect to the iOS text input plugin via the text
-  // input channel. We need to keep sending the information even if no text is
-  // currently marked, as the information usually lags behind. The text input
-  // plugin needs to estimate the composing rect based on the latest caret rect,
-  // when the composing rect info didn't arrive in time.
-  void _updateComposingRectIfNeeded() {
-    final TextRange composingRange = _value.composing;
-    if (_hasInputConnection) {
-      assert(mounted);
-      Rect? composingRect =
-          renderEditable.getRectForComposingRange(composingRange);
-      // Send the caret location instead if there's no marked text yet.
-      if (composingRect == null) {
-        assert(!composingRange.isValid || composingRange.isCollapsed);
-        final int offset = composingRange.isValid ? composingRange.start : 0;
-        composingRect =
-            renderEditable.getLocalRectForCaret(TextPosition(offset: offset));
-      }
-      assert(composingRect != null);
-      _textInputConnection!.setComposingRect(composingRect);
-      SchedulerBinding.instance!
-          .addPostFrameCallback((Duration _) => _updateComposingRectIfNeeded());
-    }
-  }
-
   void _updateCaretRectIfNeeded() {
     if (_hasInputConnection) {
       if (renderEditable.selection != null &&
@@ -2648,8 +2437,8 @@ class EditableTextState extends State<EditableText>
   /// This property is typically used to notify the renderer of input gestures
   /// when [RenderEditable.ignorePointer] is true.
   @override
-  RenderEditable get renderEditable =>
-      _editableKey.currentContext!.findRenderObject()! as RenderEditable;
+  RenderParagraph get renderEditable =>
+      _editableKey.currentContext!.findRenderObject()! as RenderParagraph;
 
   @override
   TextEditingValue get textEditingValue => _value;
@@ -2824,58 +2613,54 @@ class EditableTextState extends State<EditableText>
                 onCopy: _semanticsOnCopy(controls),
                 onCut: _semanticsOnCut(controls),
                 onPaste: _semanticsOnPaste(controls),
-                child: AutoSizeText(
-                  'Hallo2',
-                  richTextKey: _editableKey,
-                )
-                // _Editable(
-                //   key: _editableKey,
-                //   startHandleLayerLink: _startHandleLayerLink,
-                //   endHandleLayerLink: _endHandleLayerLink,
-                //   inlineSpan: buildTextSpan(),
-                //   value: _value,
-                //   cursorColor: _cursorColor,
-                //   backgroundCursorColor: widget.backgroundCursorColor,
-                //   showCursor: EditableText.debugDeterministicCursor
-                //       ? ValueNotifier<bool>(widget.showCursor)
-                //       : _cursorVisibilityNotifier,
-                //   forceLine: widget.forceLine,
-                //   readOnly: widget.readOnly,
-                //   hasFocus: _hasFocus,
-                //   maxLines: widget.maxLines,
-                //   minLines: widget.minLines,
-                //   expands: widget.expands,
-                //   strutStyle: widget.strutStyle,
-                //   selectionColor: widget.selectionColor,
-                //   textScaleFactor: widget.textScaleFactor ?? MediaQuery.textScaleFactorOf(context),
-                //   textAlign: widget.textAlign,
-                //   textDirection: _textDirection,
-                //   locale: widget.locale,
-                //   textHeightBehavior: widget.textHeightBehavior ?? DefaultTextHeightBehavior.of(context),
-                //   textWidthBasis: widget.textWidthBasis,
-                //   obscuringCharacter: widget.obscuringCharacter,
-                //   obscureText: widget.obscureText,
-                //   autocorrect: widget.autocorrect,
-                //   smartDashesType: widget.smartDashesType,
-                //   smartQuotesType: widget.smartQuotesType,
-                //   enableSuggestions: widget.enableSuggestions,
-                //   offset: offset,
-                //   onCaretChanged: _handleCaretChanged,
-                //   rendererIgnoresPointer: widget.rendererIgnoresPointer,
-                //   cursorWidth: widget.cursorWidth,
-                //   cursorHeight: widget.cursorHeight,
-                //   cursorRadius: widget.cursorRadius,
-                //   cursorOffset: widget.cursorOffset ?? Offset.zero,
-                //   selectionHeightStyle: widget.selectionHeightStyle,
-                //   selectionWidthStyle: widget.selectionWidthStyle,
-                //   paintCursorAboveText: widget.paintCursorAboveText,
-                //   enableInteractiveSelection: widget.enableInteractiveSelection,
-                //   textSelectionDelegate: this,
-                //   devicePixelRatio: _devicePixelRatio,
-                //   promptRectRange: _currentPromptRectRange,
-                //   promptRectColor: widget.autocorrectionTextRectColor,
-                //   clipBehavior: widget.clipBehavior,
-                // ),
+                child:
+                _Editable(
+                  key: _editableKey,
+                  startHandleLayerLink: _startHandleLayerLink,
+                  endHandleLayerLink: _endHandleLayerLink,
+                  inlineSpan: buildTextSpan(),
+                  value: _value,
+                  backgroundCursorColor: widget.backgroundCursorColor,
+                  showCursor: EditableText.debugDeterministicCursor
+                      ? ValueNotifier<bool>(widget.showCursor)
+                      : _cursorVisibilityNotifier,
+                  forceLine: widget.forceLine,
+                  readOnly: widget.readOnly,
+                  hasFocus: _hasFocus,
+                  maxLines: widget.maxLines,
+                  minLines: widget.minLines,
+                  expands: widget.expands,
+                  strutStyle: widget.strutStyle,
+                  selectionColor: widget.selectionColor,
+                  textScaleFactor: widget.textScaleFactor ?? MediaQuery.textScaleFactorOf(context),
+                  textAlign: widget.textAlign,
+                  textDirection: _textDirection,
+                  locale: widget.locale,
+                  textHeightBehavior: widget.textHeightBehavior ?? DefaultTextHeightBehavior.of(context),
+                  textWidthBasis: widget.textWidthBasis,
+                  obscuringCharacter: widget.obscuringCharacter,
+                  obscureText: widget.obscureText,
+                  autocorrect: widget.autocorrect,
+                  smartDashesType: widget.smartDashesType,
+                  smartQuotesType: widget.smartQuotesType,
+                  enableSuggestions: widget.enableSuggestions,
+                  offset: offset,
+                  onCaretChanged: _handleCaretChanged,
+                  rendererIgnoresPointer: widget.rendererIgnoresPointer,
+                  cursorWidth: widget.cursorWidth,
+                  cursorHeight: widget.cursorHeight,
+                  cursorRadius: widget.cursorRadius,
+                  cursorOffset: widget.cursorOffset ?? Offset.zero,
+                  selectionHeightStyle: widget.selectionHeightStyle,
+                  selectionWidthStyle: widget.selectionWidthStyle,
+                  paintCursorAboveText: widget.paintCursorAboveText,
+                  enableInteractiveSelection: widget.enableInteractiveSelection,
+                  textSelectionDelegate: this,
+                  devicePixelRatio: _devicePixelRatio,
+                  promptRectRange: _currentPromptRectRange,
+                  promptRectColor: widget.autocorrectionTextRectColor,
+                  clipBehavior: widget.clipBehavior,
+                ),
                 ),
           );
         },
@@ -3019,89 +2804,89 @@ class _Editable extends MultiChildRenderObjectWidget {
   final Clip clipBehavior;
 
   @override
-  RenderEditable createRenderObject(BuildContext context) {
-    return RenderEditable(
-      text: inlineSpan,
-      cursorColor: cursorColor,
-      startHandleLayerLink: startHandleLayerLink,
-      endHandleLayerLink: endHandleLayerLink,
-      backgroundCursorColor: backgroundCursorColor,
-      showCursor: showCursor,
-      forceLine: forceLine,
-      readOnly: readOnly,
-      hasFocus: hasFocus,
+  RenderParagraph createRenderObject(BuildContext context) {
+    return RenderParagraph(
+      inlineSpan,
+      // cursorColor: cursorColor,
+      // startHandleLayerLink: startHandleLayerLink,
+      // endHandleLayerLink: endHandleLayerLink,
+      // backgroundCursorColor: backgroundCursorColor,
+      // showCursor: showCursor,
+      // forceLine: forceLine,
+      // readOnly: readOnly,
+      // hasFocus: hasFocus,
       maxLines: maxLines,
-      minLines: minLines,
-      expands: expands,
+      // minLines: minLines,
+      // expands: expands,
       strutStyle: strutStyle,
-      selectionColor: selectionColor,
+      // selectionColor: selectionColor,
       textScaleFactor: textScaleFactor,
       textAlign: textAlign,
       textDirection: textDirection,
       locale: locale ?? Localizations.maybeLocaleOf(context),
-      selection: value.selection,
+      // selection: value.selection,
       offset: offset,
-      onCaretChanged: onCaretChanged,
-      ignorePointer: rendererIgnoresPointer,
-      obscuringCharacter: obscuringCharacter,
+      // onCaretChanged: onCaretChanged,
+      // ignorePointer: rendererIgnoresPointer,
+      // obscuringCharacter: obscuringCharacter,
       obscureText: obscureText,
       textHeightBehavior: textHeightBehavior,
       textWidthBasis: textWidthBasis,
-      cursorWidth: cursorWidth,
-      cursorHeight: cursorHeight,
-      cursorRadius: cursorRadius,
-      cursorOffset: cursorOffset,
-      paintCursorAboveText: paintCursorAboveText,
-      selectionHeightStyle: selectionHeightStyle,
-      selectionWidthStyle: selectionWidthStyle,
-      enableInteractiveSelection: enableInteractiveSelection,
+      // cursorWidth: cursorWidth,
+      // cursorHeight: cursorHeight,
+      // cursorRadius: cursorRadius,
+      // cursorOffset: cursorOffset,
+      // paintCursorAboveText: paintCursorAboveText,
+      // selectionHeightStyle: selectionHeightStyle,
+      // selectionWidthStyle: selectionWidthStyle,
+      // enableInteractiveSelection: enableInteractiveSelection,
       textSelectionDelegate: textSelectionDelegate,
-      devicePixelRatio: devicePixelRatio,
-      promptRectRange: promptRectRange,
-      promptRectColor: promptRectColor,
-      clipBehavior: clipBehavior,
+      // devicePixelRatio: devicePixelRatio,
+      // promptRectRange: promptRectRange,
+      // promptRectColor: promptRectColor,
+      // clipBehavior: clipBehavior,
     );
   }
 
   @override
-  void updateRenderObject(BuildContext context, RenderEditable renderObject) {
+  void updateRenderObject(BuildContext context, RenderParagraph renderObject) {
     renderObject
       ..text = inlineSpan
-      ..cursorColor = cursorColor
-      ..startHandleLayerLink = startHandleLayerLink
-      ..endHandleLayerLink = endHandleLayerLink
-      ..showCursor = showCursor
-      ..forceLine = forceLine
+      // ..cursorColor = cursorColor
+      // ..startHandleLayerLink = startHandleLayerLink
+      // ..endHandleLayerLink = endHandleLayerLink
+      // ..showCursor = showCursor
+      // ..forceLine = forceLine
       ..readOnly = readOnly
       ..hasFocus = hasFocus
       ..maxLines = maxLines
-      ..minLines = minLines
-      ..expands = expands
+      // ..minLines = minLines
+      // ..expands = expands
       ..strutStyle = strutStyle
-      ..selectionColor = selectionColor
+      // ..selectionColor = selectionColor
       ..textScaleFactor = textScaleFactor
       ..textAlign = textAlign
       ..textDirection = textDirection
       ..locale = locale ?? Localizations.maybeLocaleOf(context)
       ..selection = value.selection
       ..offset = offset
-      ..onCaretChanged = onCaretChanged
-      ..ignorePointer = rendererIgnoresPointer
+      // ..onCaretChanged = onCaretChanged
+      // ..ignorePointer = rendererIgnoresPointer
       ..textHeightBehavior = textHeightBehavior
       ..textWidthBasis = textWidthBasis
-      ..obscuringCharacter = obscuringCharacter
+      // ..obscuringCharacter = obscuringCharacter
       ..obscureText = obscureText
-      ..cursorWidth = cursorWidth
-      ..cursorHeight = cursorHeight
-      ..cursorRadius = cursorRadius
-      ..cursorOffset = cursorOffset
+      // ..cursorWidth = cursorWidth
+      // ..cursorHeight = cursorHeight
+      // ..cursorRadius = cursorRadius
+      // ..cursorOffset = cursorOffset
       ..selectionHeightStyle = selectionHeightStyle
       ..selectionWidthStyle = selectionWidthStyle
-      ..textSelectionDelegate = textSelectionDelegate
-      ..devicePixelRatio = devicePixelRatio
-      ..paintCursorAboveText = paintCursorAboveText
-      ..promptRectColor = promptRectColor
-      ..clipBehavior = clipBehavior
-      ..setPromptRectRange(promptRectRange);
+      ..textSelectionDelegate = textSelectionDelegate;
+      // ..devicePixelRatio = devicePixelRatio
+      // ..paintCursorAboveText = paintCursorAboveText
+      // ..promptRectColor = promptRectColor
+      // ..clipBehavior = clipBehavior
+      // ..setPromptRectRange(promptRectRange);
   }
 }

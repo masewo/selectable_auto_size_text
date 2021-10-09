@@ -4,7 +4,7 @@
 
 import 'dart:math' as math;
 
-import 'package:flutter/rendering.dart';
+import 'package:flutter/rendering.dart' hide RenderParagraph;
 import 'package:flutter/widgets.dart'
     hide
         TextSelectionControls,

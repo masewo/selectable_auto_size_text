@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' hide SelectableText;
+import 'package:flutter/material.dart';
 import 'package:selectable_auto_size_text/selectable_auto_size_text.dart';
 
 void main() {
@@ -50,12 +50,26 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             const SelectableText(
-              'You have pushed the button this many times:',
+              'You have pushed the button this many times times times time1',
             ),
-            SelectableText(
+            const Text(
+              'You have pushed the button this many times times times time1',
+            ),
+            const SelectableAutoSizeText(
+              'You have pushed the button this many times times times time1',
+            ),
+            // SelectableText(
+            //   '$_counter',
+            //   style: Theme.of(context).textTheme.headline4,
+            // ),
+            Text(
               '$_counter',
               style: Theme.of(context).textTheme.headline4,
             ),
+            // SelectableAutoSizeText(
+            //   '$_counter',
+            //   style: Theme.of(context).textTheme.headline4,
+            // ),
           ],
         ),
       ),

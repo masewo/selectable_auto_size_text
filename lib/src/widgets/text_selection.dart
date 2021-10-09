@@ -8,11 +8,12 @@ import 'dart:math' as math;
 import 'package:characters/characters.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart' hide EditableTextState, EditableText;
-import 'package:flutter/rendering.dart';
+import 'package:flutter/material.dart' hide EditableTextState, EditableText, TextSelectionControls;
+import 'package:flutter/rendering.dart' hide RenderParagraph;
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart' hide EditableTextState, EditableText;
+import 'package:flutter/widgets.dart' hide EditableTextState, EditableText, TextSelectionControls;
+import 'package:selectable_auto_size_text/src/rendering/paragraph.dart';
 import 'package:selectable_auto_size_text/src/widgets/editable_text.dart';
 
 export 'package:flutter/services.dart' show TextSelectionDelegate;
@@ -371,7 +372,7 @@ class TextSelectionOverlay {
   // TODO(mpcomplete): what if the renderObject is removed or replaced, or
   // moves? Not sure what cases I need to handle, or how to handle them.
   /// The editable line in which the selected text is being displayed.
-  final RenderEditable renderObject;
+  final RenderParagraph renderObject;
 
   /// Builds text selection handles and toolbar.
   final TextSelectionControls? selectionControls;
@@ -696,7 +697,7 @@ class _TextSelectionHandleOverlay extends StatefulWidget {
   final _TextSelectionHandlePosition position;
   final LayerLink startHandleLayerLink;
   final LayerLink endHandleLayerLink;
-  final RenderEditable renderObject;
+  final RenderParagraph renderObject;
   final ValueChanged<TextSelection> onSelectionHandleChanged;
   final VoidCallback? onSelectionHandleTapped;
   final TextSelectionControls selectionControls;
@@ -1028,7 +1029,7 @@ class TextSelectionGestureDetectorBuilder {
   /// The [RenderObject] of the [EditableText] for which the builder will
   /// provide a [TextSelectionGestureDetector].
   @protected
-  RenderEditable get renderEditable => editableText.renderEditable;
+  RenderParagraph get renderEditable => editableText.renderEditable;
 
   /// The viewport offset pixels of the [RenderEditable] at the last drag start.
   double _dragStartViewportOffset = 0.0;

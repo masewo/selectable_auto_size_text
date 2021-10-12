@@ -33,6 +33,8 @@ class RichText extends MultiChildRenderObjectWidget {
     required this.offset,
     required this.obscureText,
     required this.textSelectionDelegate,
+    required this.startHandleLayerLink,
+    required this.endHandleLayerLink,
   })  : assert(text != null),
         assert(textAlign != null),
         assert(softWrap != null),
@@ -40,6 +42,8 @@ class RichText extends MultiChildRenderObjectWidget {
         assert(textScaleFactor != null),
         assert(maxLines == null || maxLines > 0),
         assert(textWidthBasis != null),
+        assert(startHandleLayerLink != null),
+        assert(endHandleLayerLink != null),
         super(key: key, children: _extractChildren(text));
 
   // Traverses the InlineSpan tree and depth-first collects the list of
@@ -124,12 +128,16 @@ class RichText extends MultiChildRenderObjectWidget {
   final ViewportOffset offset;
   final bool obscureText;
   final TextSelectionDelegate textSelectionDelegate;
+  final LayerLink startHandleLayerLink;
+  final LayerLink endHandleLayerLink;
 
   @override
   RenderParagraph createRenderObject(BuildContext context) {
     assert(textDirection != null || debugCheckHasDirectionality(context));
     return RenderParagraph(
       text,
+      startHandleLayerLink: startHandleLayerLink,
+      endHandleLayerLink: endHandleLayerLink,
       textAlign: textAlign,
       textDirection: textDirection ?? Directionality.of(context),
       softWrap: softWrap,

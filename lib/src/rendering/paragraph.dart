@@ -1472,7 +1472,7 @@ class RenderParagraph extends RenderBox
 
   bool _onlyWhitespace(TextRange range) {
     for (int i = range.start; i < range.end; i++) {
-      final int codeUnit = text!.codeUnitAt(i)!;
+      final int codeUnit = text.codeUnitAt(i)!;
       if (!_isWhitespace(codeUnit)) {
         return false;
       }

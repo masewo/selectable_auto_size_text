@@ -837,7 +837,7 @@ class _TextSelectionHandleOverlayState
     // widget.renderObject.getRectForComposingRange might fail. In cases where
     // the current frame is different from the previous we fall back to
     // widget.renderObject.preferredLineHeight.
-    final InlineSpan span = widget.renderObject.text!;
+    final InlineSpan span = widget.renderObject.text;
     final String prevText = span.toPlainText();
     final String currText = widget.selectionDelegate.textEditingValue.text;
     final int firstSelectedGraphemeExtent;

@@ -374,6 +374,8 @@ class Text extends StatelessWidget {
         required this.offset,
         required this.obscureText,
         required this.textSelectionDelegate,
+        required this.startHandleLayerLink,
+        required this.endHandleLayerLink,
       }) : assert(
   data != null,
   'A non-null String must be provided to a Text widget.',
@@ -409,6 +411,8 @@ class Text extends StatelessWidget {
         required this.offset,
         required this.obscureText,
         required this.textSelectionDelegate,
+        required this.startHandleLayerLink,
+        required this.endHandleLayerLink,
       }) : assert(
   textSpan != null,
   'A non-null TextSpan must be provided to a Text.rich widget.',
@@ -520,6 +524,8 @@ class Text extends StatelessWidget {
   final ViewportOffset offset;
   final bool obscureText;
   final TextSelectionDelegate textSelectionDelegate;
+  final LayerLink startHandleLayerLink;
+  final LayerLink endHandleLayerLink;
 
   @override
   Widget build(BuildContext context) {
@@ -530,6 +536,8 @@ class Text extends StatelessWidget {
     if (MediaQuery.boldTextOverride(context))
       effectiveTextStyle = effectiveTextStyle!.merge(const TextStyle(fontWeight: FontWeight.bold));
     Widget result = RichText(
+      startHandleLayerLink: startHandleLayerLink,
+      endHandleLayerLink: endHandleLayerLink,
       textAlign: textAlign ?? defaultTextStyle.textAlign ?? TextAlign.start,
       textDirection: textDirection, // RichText uses Directionality.of to obtain a default if this is null.
       locale: locale, // RichText uses Localizations.localeOf to obtain a default if this is null

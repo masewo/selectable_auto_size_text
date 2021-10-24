@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 import 'dart:collection';
+import 'dart:developer';
 import 'dart:math' as math;
 import 'dart:ui' as ui
     show
@@ -96,15 +97,20 @@ class RenderParagraph extends RenderBox
     bool softWrap = true,
     TextOverflow overflow = TextOverflow.clip,
     double textScaleFactor = 1.0,
+
+        required LayerLink startHandleLayerLink,
+        required LayerLink endHandleLayerLink,
     int? maxLines,
     Locale? locale,
     StrutStyle? strutStyle,
+    Color? selectionColor,
     TextWidthBasis textWidthBasis = TextWidthBasis.parent,
     ui.TextHeightBehavior? textHeightBehavior,
     List<RenderBox>? children,
     required ViewportOffset offset,
     bool obscureText = false,
-        required this.textSelectionDelegate,
+    required this.textSelectionDelegate,
+    RenderEditablePainter? painter,
   })  : assert(text != null),
         assert(text.debugAssertIsValid()),
         assert(textAlign != null),
@@ -113,6 +119,9 @@ class RenderParagraph extends RenderBox
         assert(overflow != null),
         assert(textScaleFactor != null),
         assert(maxLines == null || maxLines > 0),
+
+        assert(startHandleLayerLink != null),
+        assert(endHandleLayerLink != null),
         assert(textWidthBasis != null),
         _softWrap = softWrap,
         _overflow = overflow,
@@ -129,7 +138,15 @@ class RenderParagraph extends RenderBox
           textHeightBehavior: textHeightBehavior,
         ),
         _offset = offset,
-        _obscureText = obscureText {
+        _obscureText = obscureText,
+        _startHandleLayerLink = startHandleLayerLink,
+        _endHandleLayerLink = endHandleLayerLink {
+    _selectionPainter.highlightColor = selectionColor;
+    _selectionPainter.highlightedRange = selection;
+    _selectionPainter.selectionHeightStyle = selectionHeightStyle;
+    _selectionPainter.selectionWidthStyle = selectionWidthStyle;
+
+    _updatePainter(painter);
     addAll(children);
     _extractPlaceholderSpans(text);
   }
@@ -138,6 +155,16 @@ class RenderParagraph extends RenderBox
   void setupParentData(RenderBox child) {
     if (child.parentData is! TextParentData)
       child.parentData = TextParentData();
+  }
+
+  @override
+  void dispose() {
+    // _foregroundRenderObject?.dispose();
+    // _foregroundRenderObject = null;
+    _backgroundRenderObject?.dispose();
+    _backgroundRenderObject = null;
+    _cachedBuiltInPainters?.dispose();
+    super.dispose();
   }
 
   final TextPainter _textPainter;
@@ -543,12 +570,28 @@ class RenderParagraph extends RenderBox
       minWidth: minWidth,
       maxWidth: widthMatters ? maxWidth : double.infinity,
     );
+
+    // TODO: ist das hier schuld?
+    // assert(maxWidth != null && minWidth != null);
+    // final double availableMaxWidth = math.max(0.0, maxWidth - _caretMargin);
+    // final double availableMinWidth = math.min(minWidth, availableMaxWidth);
+    // final double textMaxWidth = _isMultiline ? availableMaxWidth : double.infinity;
+    // final double textMinWidth = forceLine ? availableMaxWidth : availableMinWidth;
+    // _textPainter.layout(
+    //   minWidth: textMinWidth,
+    //   maxWidth: textMaxWidth,
+    // );
+
+    _textLayoutLastMinWidth = minWidth;
+    _textLayoutLastMaxWidth = maxWidth;
   }
 
   @override
   void systemFontsDidChange() {
     super.systemFontsDidChange();
     _textPainter.markNeedsLayout();
+    _textLayoutLastMaxWidth = null;
+    _textLayoutLastMinWidth = null;
   }
 
   // Placeholder dimensions representing the sizes of child inline widgets.
@@ -690,6 +733,15 @@ class RenderParagraph extends RenderBox
     final bool textDidExceedMaxLines = _textPainter.didExceedMaxLines;
     size = constraints.constrain(textSize);
 
+    final Size textPainterSize = _textPainter.size;
+    const double _caretMargin = 0.0;
+    final Size contentSize = Size(textPainterSize.width + _caretMargin, textPainterSize.height);
+
+    final BoxConstraints painterConstraints = BoxConstraints.tight(contentSize);
+
+    // _foregroundRenderObject?.layout(painterConstraints);
+    _backgroundRenderObject?.layout(painterConstraints);
+
     final bool didOverflowHeight =
         size.height < textSize.height || textDidExceedMaxLines;
     final bool didOverflowWidth = size.width < textSize.width;
@@ -786,6 +838,13 @@ class RenderParagraph extends RenderBox
       }
       context.canvas.clipRect(bounds);
     }
+    final RenderBox? backgroundChild = _backgroundRenderObject;
+
+    // The painters paint in the viewport's coordinate space, since the
+    // textPainter's coordinate space is not known to high level widgets.
+    if (backgroundChild != null)
+      context.paintChild(backgroundChild, offset);
+
     _textPainter.paint(context.canvas, offset);
 
     RenderBox? child = firstChild;
@@ -823,6 +882,55 @@ class RenderParagraph extends RenderBox
       }
       context.canvas.restore();
     }
+    if (selection != null)
+      _paintHandleLayers(context, getEndpointsForSelection(selection!));
+  }
+
+  void _paintHandleLayers(PaintingContext context, List<TextSelectionPoint> endpoints) {
+    Offset startPoint = endpoints[0].point;
+    startPoint = Offset(
+      startPoint.dx.clamp(0.0, size.width),
+      startPoint.dy.clamp(0.0, size.height),
+    );
+    context.pushLayer(
+      LeaderLayer(link: startHandleLayerLink, offset: startPoint),
+      super.paint,
+      Offset.zero,
+    );
+    if (endpoints.length == 2) {
+      Offset endPoint = endpoints[1].point;
+      endPoint = Offset(
+        endPoint.dx.clamp(0.0, size.width),
+        endPoint.dy.clamp(0.0, size.height),
+      );
+      context.pushLayer(
+        LeaderLayer(link: endHandleLayerLink, offset: endPoint),
+        super.paint,
+        Offset.zero,
+      );
+    }
+  }
+
+  LayerLink get startHandleLayerLink => _startHandleLayerLink;
+  LayerLink _startHandleLayerLink;
+  set startHandleLayerLink(LayerLink value) {
+    if (_startHandleLayerLink == value)
+      return;
+    _startHandleLayerLink = value;
+    markNeedsPaint();
+  }
+
+  /// The [LayerLink] of end selection handle.
+  ///
+  /// [RenderEditable] is responsible for calculating the [Offset] of this
+  /// [LayerLink], which will be used as [CompositedTransformTarget] of end handle.
+  LayerLink get endHandleLayerLink => _endHandleLayerLink;
+  LayerLink _endHandleLayerLink;
+  set endHandleLayerLink(LayerLink value) {
+    if (_endHandleLayerLink == value)
+      return;
+    _endHandleLayerLink = value;
+    markNeedsPaint();
   }
 
   /// Returns the offset at which to paint the caret.
@@ -1124,6 +1232,12 @@ class RenderParagraph extends RenderBox
 
   double get preferredLineHeight => _textPainter.preferredLineHeight;
 
+  /// The color to use when painting the selection.
+  Color? get selectionColor => _selectionPainter.highlightColor;
+  set selectionColor(Color? value) {
+    _selectionPainter.highlightColor = value;
+  }
+
   TextSelection? get selection => _selection;
   TextSelection? _selection;
 
@@ -1358,7 +1472,7 @@ class RenderParagraph extends RenderBox
 
   bool _onlyWhitespace(TextRange range) {
     for (int i = range.start; i < range.end; i++) {
-      final int codeUnit = text!.codeUnitAt(i)!;
+      final int codeUnit = text.codeUnitAt(i)!;
       if (!_isWhitespace(codeUnit)) {
         return false;
       }
@@ -1571,6 +1685,104 @@ class RenderParagraph extends RenderBox
   void selectPosition({required SelectionChangedCause cause}) {
     selectPositionAt(from: _lastTapDownPosition!, cause: cause);
   }
+
+  @protected
+  void markNeedsTextLayout() {
+    _textLayoutLastMaxWidth = null;
+    _textLayoutLastMinWidth = null;
+    markNeedsLayout();
+  }
+
+  _CompositeRenderEditablePainter get _builtInPainters => _cachedBuiltInPainters ??= _createBuiltInPainters();
+  _CompositeRenderEditablePainter? _cachedBuiltInPainters;
+  _CompositeRenderEditablePainter _createBuiltInPainters() {
+    return _CompositeRenderEditablePainter(
+      painters: <RenderEditablePainter>[
+        _selectionPainter,
+      ],
+    );
+  }
+
+  void _updatePainter(RenderEditablePainter? newPainter) {
+    final _CompositeRenderEditablePainter effectivePainter = newPainter == null
+        ? _builtInPainters
+        : _CompositeRenderEditablePainter(painters: <RenderEditablePainter>[_builtInPainters, newPainter]);
+
+    if (_backgroundRenderObject == null) {
+      final _RenderEditableCustomPaint backgroundRenderObject = _RenderEditableCustomPaint(painter: effectivePainter);
+      adoptChild(backgroundRenderObject);
+      _backgroundRenderObject = backgroundRenderObject;
+    } else {
+      _backgroundRenderObject?.painter = effectivePainter;
+    }
+    _painter = newPainter;
+  }
+
+  RenderEditablePainter? get painter => _painter;
+  RenderEditablePainter? _painter;
+  set painter(RenderEditablePainter? newPainter) {
+    if (newPainter == _painter)
+      return;
+    _updatePainter(newPainter);
+  }
+
+  _RenderEditableCustomPaint? _backgroundRenderObject;
+
+  @override
+  void attach(PipelineOwner owner) {
+    super.attach(owner);
+    // _foregroundRenderObject?.attach(owner);
+    _backgroundRenderObject?.attach(owner);
+
+    // _tap = TapGestureRecognizer(debugOwner: this)
+    //   ..onTapDown = _handleTapDown
+    //   ..onTap = _handleTap;
+    // _longPress = LongPressGestureRecognizer(debugOwner: this)..onLongPress = _handleLongPress;
+    _offset.addListener(markNeedsPaint);
+    // _showHideCursor();
+    // _showCursor.addListener(_showHideCursor);
+  }
+
+  @override
+  void detach() {
+    // _tap.dispose();
+    // _longPress.dispose();
+    _offset.removeListener(markNeedsPaint);
+    // _showCursor.removeListener(_showHideCursor);
+    super.detach();
+    // _foregroundRenderObject?.detach();
+    _backgroundRenderObject?.detach();
+  }
+
+  @override
+  void redepthChildren() {
+    // final RenderObject? foregroundChild = _foregroundRenderObject;
+    final RenderObject? backgroundChild = _backgroundRenderObject;
+    // if (foregroundChild != null)
+    //   redepthChild(foregroundChild);
+    if (backgroundChild != null)
+      redepthChild(backgroundChild);
+    super.redepthChildren();
+  }
+
+  @override
+  void visitChildren(RenderObjectVisitor visitor) {
+    // final RenderObject? foregroundChild = _foregroundRenderObject;
+    final RenderObject? backgroundChild = _backgroundRenderObject;
+    // if (foregroundChild != null)
+    //   visitor(foregroundChild);
+    if (backgroundChild != null)
+      visitor(backgroundChild);
+    super.visitChildren(visitor);
+  }
+
+  @override
+  void markNeedsPaint() {
+    super.markNeedsPaint();
+    // Tell the painers to repaint since text layout may have changed.
+    // _foregroundRenderObject?.markNeedsPaint();
+    _backgroundRenderObject?.markNeedsPaint();
+  }
 }
 
 /// An interface that paints within a [RenderEditable]'s bounds, above or
@@ -1708,4 +1920,104 @@ class _TextHighlightPainter extends RenderEditablePainter {
         oldDelegate.selectionHeightStyle != selectionHeightStyle ||
         oldDelegate.selectionWidthStyle != selectionWidthStyle;
   }
+}
+
+class _CompositeRenderEditablePainter extends RenderEditablePainter {
+  _CompositeRenderEditablePainter({ required this.painters });
+
+  final List<RenderEditablePainter> painters;
+
+  @override
+  void addListener(VoidCallback listener) {
+    for (final RenderEditablePainter painter in painters)
+      painter.addListener(listener);
+  }
+
+  @override
+  void removeListener(VoidCallback listener) {
+    for (final RenderEditablePainter painter in painters)
+      painter.removeListener(listener);
+  }
+
+  @override
+  void paint(Canvas canvas, Size size, RenderParagraph renderEditable) {
+    for (final RenderEditablePainter painter in painters)
+      painter.paint(canvas, size, renderEditable);
+  }
+
+  @override
+  bool shouldRepaint(RenderEditablePainter? oldDelegate) {
+    if (identical(oldDelegate, this))
+      return false;
+    if (oldDelegate is! _CompositeRenderEditablePainter || oldDelegate.painters.length != painters.length)
+      return true;
+
+    final Iterator<RenderEditablePainter> oldPainters = oldDelegate.painters.iterator;
+    final Iterator<RenderEditablePainter> newPainters = painters.iterator;
+    while (oldPainters.moveNext() && newPainters.moveNext())
+      if (newPainters.current.shouldRepaint(oldPainters.current))
+        return true;
+
+    return false;
+  }
+}
+
+class _RenderEditableCustomPaint extends RenderBox {
+  _RenderEditableCustomPaint({
+    RenderEditablePainter? painter,
+  }) : _painter = painter,
+        super();
+
+  @override
+  RenderParagraph? get parent => super.parent as RenderParagraph?;
+
+  @override
+  bool get isRepaintBoundary => true;
+
+  @override
+  bool get sizedByParent => true;
+
+  RenderEditablePainter? get painter => _painter;
+  RenderEditablePainter? _painter;
+  set painter(RenderEditablePainter? newValue) {
+    if (newValue == painter)
+      return;
+
+    final RenderEditablePainter? oldPainter = painter;
+    _painter = newValue;
+
+    if (newValue?.shouldRepaint(oldPainter) ?? true)
+      markNeedsPaint();
+
+    if (attached) {
+      oldPainter?.removeListener(markNeedsPaint);
+      newValue?.addListener(markNeedsPaint);
+    }
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    final RenderParagraph? parent = this.parent;
+    assert(parent != null);
+    final RenderEditablePainter? painter = this.painter;
+    if (painter != null && parent != null) {
+      parent._computeTextMetricsIfNeeded();
+      painter.paint(context.canvas, size, parent);
+    }
+  }
+
+  @override
+  void attach(PipelineOwner owner) {
+    super.attach(owner);
+    _painter?.addListener(markNeedsPaint);
+  }
+
+  @override
+  void detach() {
+    _painter?.removeListener(markNeedsPaint);
+    super.detach();
+  }
+
+  @override
+  Size computeDryLayout(BoxConstraints constraints) => constraints.biggest;
 }

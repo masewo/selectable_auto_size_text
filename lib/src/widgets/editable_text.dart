@@ -2007,7 +2007,7 @@ class EditableTextState extends State<EditableText>
   // `renderEditable.preferredLineHeight`, before the target scroll offset is
   // calculated.
   RevealedOffset _getOffsetToRevealCaret(Rect rect) {
-    if (!_scrollController!.position.allowImplicitScrolling)
+    if (true || !_scrollController!.position.allowImplicitScrolling)
       return RevealedOffset(offset: _scrollController!.offset, rect: rect);
 
     final Size editableSize = renderEditable.size;
@@ -2463,7 +2463,7 @@ class EditableTextState extends State<EditableText>
     final Rect localRect = renderEditable.getLocalRectForCaret(position);
     final RevealedOffset targetOffset = _getOffsetToRevealCaret(localRect);
 
-    _scrollController!.jumpTo(targetOffset.offset);
+    //_scrollController!.jumpTo(targetOffset.offset);
     renderEditable.showOnScreen(rect: targetOffset.rect);
   }
 
@@ -2807,6 +2807,8 @@ class _Editable extends MultiChildRenderObjectWidget {
   RenderParagraph createRenderObject(BuildContext context) {
     return RenderParagraph(
       inlineSpan,
+      startHandleLayerLink: startHandleLayerLink,
+      endHandleLayerLink: endHandleLayerLink,
       // cursorColor: cursorColor,
       // startHandleLayerLink: startHandleLayerLink,
       // endHandleLayerLink: endHandleLayerLink,
@@ -2819,7 +2821,7 @@ class _Editable extends MultiChildRenderObjectWidget {
       // minLines: minLines,
       // expands: expands,
       strutStyle: strutStyle,
-      // selectionColor: selectionColor,
+      selectionColor: selectionColor,
       textScaleFactor: textScaleFactor,
       textAlign: textAlign,
       textDirection: textDirection,
@@ -2863,7 +2865,7 @@ class _Editable extends MultiChildRenderObjectWidget {
       // ..minLines = minLines
       // ..expands = expands
       ..strutStyle = strutStyle
-      // ..selectionColor = selectionColor
+      ..selectionColor = selectionColor
       ..textScaleFactor = textScaleFactor
       ..textAlign = textAlign
       ..textDirection = textDirection

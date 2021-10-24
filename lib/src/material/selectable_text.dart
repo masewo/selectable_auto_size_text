@@ -49,8 +49,7 @@ const int iOSHorizontalOffset = -2;
 
 class _TextSpanEditingController extends TextEditingController {
   _TextSpanEditingController({required TextSpan textSpan})
-      : assert(textSpan != null),
-        _textSpan = textSpan,
+      : _textSpan = textSpan,
         super(text: textSpan.toPlainText(includeSemanticsLabels: false));
 
   final TextSpan _textSpan;
@@ -229,20 +228,11 @@ class SelectableText extends StatefulWidget {
     this.textHeightBehavior,
     this.textWidthBasis,
     this.onSelectionChanged,
-  })  : assert(showCursor != null),
-        assert(autofocus != null),
-        assert(dragStartBehavior != null),
-        assert(selectionHeightStyle != null),
-        assert(selectionWidthStyle != null),
-        assert(maxLines == null || maxLines > 0),
+  })  : assert(maxLines == null || maxLines > 0),
         assert(minLines == null || minLines > 0),
         assert(
           (maxLines == null) || (minLines == null) || (maxLines >= minLines),
           "minLines can't be greater than maxLines",
-        ),
-        assert(
-          data != null,
-          'A non-null String must be provided to a SelectableText widget.',
         ),
         textSpan = null,
         toolbarOptions = toolbarOptions ??
@@ -286,18 +276,11 @@ class SelectableText extends StatefulWidget {
     this.textHeightBehavior,
     this.textWidthBasis,
     this.onSelectionChanged,
-  })  : assert(showCursor != null),
-        assert(autofocus != null),
-        assert(dragStartBehavior != null),
-        assert(maxLines == null || maxLines > 0),
+  })  : assert(maxLines == null || maxLines > 0),
         assert(minLines == null || minLines > 0),
         assert(
           (maxLines == null) || (minLines == null) || (maxLines >= minLines),
           "minLines can't be greater than maxLines",
-        ),
-        assert(
-          textSpan != null,
-          'A non-null TextSpan must be provided to a SelectableText.rich widget.',
         ),
         data = null,
         toolbarOptions = toolbarOptions ??
@@ -614,8 +597,9 @@ class _SelectableTextState extends State<SelectableText>
   bool _shouldShowSelectionHandles(SelectionChangedCause? cause) {
     // When the text field is activated by something that doesn't trigger the
     // selection overlay, we shouldn't show the handles either.
-    if (!_selectionGestureDetectorBuilder.shouldShowSelectionToolbar)
+    if (!_selectionGestureDetectorBuilder.shouldShowSelectionToolbar) {
       return false;
+    }
 
     if (_controller.selection.isCollapsed) return false;
 
@@ -718,11 +702,13 @@ class _SelectableTextState extends State<SelectableText>
 
     final DefaultTextStyle defaultTextStyle = DefaultTextStyle.of(context);
     TextStyle? effectiveTextStyle = widget.style;
-    if (effectiveTextStyle == null || effectiveTextStyle.inherit)
+    if (effectiveTextStyle == null || effectiveTextStyle.inherit) {
       effectiveTextStyle = defaultTextStyle.style.merge(widget.style);
-    if (MediaQuery.boldTextOverride(context))
+    }
+    if (MediaQuery.boldTextOverride(context)) {
       effectiveTextStyle = effectiveTextStyle
           .merge(const TextStyle(fontWeight: FontWeight.bold));
+    }
     final Widget child = RepaintBoundary(
       child: EditableText(
         key: editableTextKey,

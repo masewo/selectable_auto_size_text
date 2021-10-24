@@ -35,15 +35,7 @@ class RichText extends MultiChildRenderObjectWidget {
     required this.textSelectionDelegate,
     required this.startHandleLayerLink,
     required this.endHandleLayerLink,
-  })  : assert(text != null),
-        assert(textAlign != null),
-        assert(softWrap != null),
-        assert(overflow != null),
-        assert(textScaleFactor != null),
-        assert(maxLines == null || maxLines > 0),
-        assert(textWidthBasis != null),
-        assert(startHandleLayerLink != null),
-        assert(endHandleLayerLink != null),
+  })  : assert(maxLines == null || maxLines > 0),
         super(key: key, children: _extractChildren(text));
 
   // Traverses the InlineSpan tree and depth-first collects the list of

@@ -44,10 +44,6 @@ class MaterialTextSelectionControls extends TextSelectionControls {
     ClipboardStatusNotifier clipboardStatus,
     Offset? lastSecondaryTapDownPosition,
   ) {
-    print(globalEditableRegion);
-    print(textLineHeight);
-    print(selectionMidpoint);
-    print(endpoints);
     return _TextSelectionControlsToolbar(
       globalEditableRegion: globalEditableRegion,
       textLineHeight: textLineHeight,

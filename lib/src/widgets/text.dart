@@ -43,12 +43,7 @@ class DefaultTextStyle extends InheritedTheme {
     this.textWidthBasis = TextWidthBasis.parent,
     this.textHeightBehavior,
     required Widget child,
-  }) : assert(style != null),
-        assert(softWrap != null),
-        assert(overflow != null),
-        assert(maxLines == null || maxLines > 0),
-        assert(child != null),
-        assert(textWidthBasis != null),
+  }) : assert(maxLines == null || maxLines > 0),
         super(key: key, child: child);
 
   /// A const-constructable default text style that provides fallback values.
@@ -93,7 +88,6 @@ class DefaultTextStyle extends InheritedTheme {
     TextWidthBasis? textWidthBasis,
     required Widget child,
   }) {
-    assert(child != null);
     return Builder(
       builder: (BuildContext context) {
         final DefaultTextStyle parent = DefaultTextStyle.of(context);
@@ -234,9 +228,7 @@ class DefaultTextHeightBehavior extends InheritedTheme {
     Key? key,
     required this.textHeightBehavior,
     required Widget child,
-  }) :  assert(textHeightBehavior != null),
-        assert(child != null),
-        super(key: key, child: child);
+  }) :  super(key: key, child: child);
 
   /// {@macro flutter.dart:ui.textHeightBehavior}
   final TextHeightBehavior textHeightBehavior;
@@ -376,11 +368,7 @@ class Text extends StatelessWidget {
         required this.textSelectionDelegate,
         required this.startHandleLayerLink,
         required this.endHandleLayerLink,
-      }) : assert(
-  data != null,
-  'A non-null String must be provided to a Text widget.',
-  ),
-        textSpan = null,
+      }) : textSpan = null,
         super(key: key);
 
   /// Creates a text widget with a [InlineSpan].
@@ -413,11 +401,7 @@ class Text extends StatelessWidget {
         required this.textSelectionDelegate,
         required this.startHandleLayerLink,
         required this.endHandleLayerLink,
-      }) : assert(
-  textSpan != null,
-  'A non-null TextSpan must be provided to a Text.rich widget.',
-  ),
-        data = null,
+      }) : data = null,
         super(key: key);
 
   /// The text to display.
@@ -531,10 +515,12 @@ class Text extends StatelessWidget {
   Widget build(BuildContext context) {
     final DefaultTextStyle defaultTextStyle = DefaultTextStyle.of(context);
     TextStyle? effectiveTextStyle = style;
-    if (style == null || style!.inherit)
+    if (style == null || style!.inherit) {
       effectiveTextStyle = defaultTextStyle.style.merge(style);
-    if (MediaQuery.boldTextOverride(context))
+    }
+    if (MediaQuery.boldTextOverride(context)) {
       effectiveTextStyle = effectiveTextStyle!.merge(const TextStyle(fontWeight: FontWeight.bold));
+    }
     Widget result = RichText(
       startHandleLayerLink: startHandleLayerLink,
       endHandleLayerLink: endHandleLayerLink,

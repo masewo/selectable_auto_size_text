@@ -214,7 +214,7 @@ abstract class TextSelectionControls {
           offset: value.selection.start,
         ),
       ),
-      SelectionChangedCause.toolBar,
+      SelectionChangedCause.toolbar,
     );
     delegate.bringIntoView(delegate.textEditingValue.selection.extent);
     delegate.hideToolbar();
@@ -250,7 +250,7 @@ abstract class TextSelectionControls {
             text: value.text,
             selection: TextSelection.collapsed(offset: value.selection.end),
           ),
-          SelectionChangedCause.toolBar,
+          SelectionChangedCause.toolbar,
         );
         delegate.hideToolbar();
         return;
@@ -281,7 +281,7 @@ abstract class TextSelectionControls {
               offset: value.selection.start + data.text!.length,
           ),
         ),
-        SelectionChangedCause.toolBar,
+        SelectionChangedCause.toolbar,
       );
     }
     delegate.bringIntoView(delegate.textEditingValue.selection.extent);
@@ -304,7 +304,7 @@ abstract class TextSelectionControls {
           extentOffset: delegate.textEditingValue.text.length,
         ),
       ),
-      SelectionChangedCause.toolBar,
+      SelectionChangedCause.toolbar,
     );
     delegate.bringIntoView(delegate.textEditingValue.selection.extent);
   }

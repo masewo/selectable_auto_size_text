@@ -2409,14 +2409,6 @@ class EditableTextState extends State<EditableText>
               : TextInputAction.done),
       textCapitalization: widget.textCapitalization,
       keyboardAppearance: widget.keyboardAppearance,
-      autofillConfiguration: !needsAutofillConfiguration
-          ? null
-          : AutofillConfiguration(
-              uniqueIdentifier: autofillId,
-              autofillHints:
-                  widget.autofillHints?.toList(growable: false) ?? <String>[],
-              currentEditingValue: currentTextEditingValue,
-            ),
       enableIMEPersonalizedLearning: widget.enableIMEPersonalizedLearning,
     );
   }
@@ -2565,6 +2557,96 @@ class EditableTextState extends State<EditableText>
       style: widget.style,
       withComposing: !widget.readOnly,
     );
+  }
+
+  @override
+  void autofill(TextEditingValue value) => updateEditingValue(value);
+
+  @override
+  void copySelection(SelectionChangedCause cause) {
+    final TextSelection selection = textEditingValue.selection;
+    final String text = textEditingValue.text;
+    if (selection.isCollapsed || !selection.isValid) {
+      return;
+    }
+    Clipboard.setData(ClipboardData(text: selection.textInside(text)));
+
+    if (cause == SelectionChangedCause.toolbar) {
+      bringIntoView(textEditingValue.selection.extent);
+      hideToolbar(false);
+
+      switch (defaultTargetPlatform) {
+        case TargetPlatform.iOS:
+          break;
+        case TargetPlatform.macOS:
+        case TargetPlatform.android:
+        case TargetPlatform.fuchsia:
+        case TargetPlatform.linux:
+        case TargetPlatform.windows:
+        // Collapse the selection and hide the toolbar and handles.
+          userUpdateTextEditingValue(
+            TextEditingValue(
+              text: textEditingValue.text,
+              selection: TextSelection.collapsed(offset: textEditingValue.selection.end),
+            ),
+            SelectionChangedCause.toolbar,
+          );
+          break;
+      }
+    }
+  }
+
+  /// {@macro flutter.widgets.TextEditingActionTarget.cutSelection}
+  @override
+  void cutSelection(SelectionChangedCause cause) {
+    //super.cutSelection(cause);
+    if (cause == SelectionChangedCause.toolbar) {
+      bringIntoView(textEditingValue.selection.extent);
+      hideToolbar();
+    }
+  }
+
+  /// {@macro flutter.widgets.TextEditingActionTarget.pasteText}
+  @override
+  Future<void> pasteText(SelectionChangedCause cause) async {
+    //super.pasteText(cause);
+    if (cause == SelectionChangedCause.toolbar) {
+      bringIntoView(textEditingValue.selection.extent);
+      hideToolbar();
+    }
+  }
+
+  /// Select the entire text value.
+  @override
+  void selectAll(SelectionChangedCause cause) {
+    setSelection(
+      textEditingValue.selection.copyWith(
+        baseOffset: 0,
+        extentOffset: textEditingValue.text.length,
+      ),
+      cause,
+    );
+    if (cause == SelectionChangedCause.toolbar) {
+      bringIntoView(textEditingValue.selection.extent);
+    }
+  }
+
+  void setSelection(TextSelection nextSelection, SelectionChangedCause cause) {
+    if (nextSelection == textEditingValue.selection) {
+      return;
+    }
+    setTextEditingValue(
+      textEditingValue.copyWith(selection: nextSelection),
+      cause,
+    );
+  }
+
+  void setTextEditingValue(TextEditingValue newValue, SelectionChangedCause cause) {
+    if (newValue == textEditingValue) {
+      return;
+    }
+    textEditingValue = newValue;
+    userUpdateTextEditingValue(newValue, cause);
   }
 }
 

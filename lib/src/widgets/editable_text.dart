@@ -450,6 +450,7 @@ class EditableText extends StatefulWidget {
     this.locale,
     this.textScaleFactor,
     this.maxLines = 1,
+    this.overflow  = TextOverflow.clip,
     this.minLines,
     this.expands = false,
     this.forceLine = true,
@@ -804,6 +805,8 @@ class EditableText extends StatefulWidget {
   ///  * [expands], which determines whether the field should fill the height of
   ///    its parent.
   final int? maxLines;
+
+  final TextOverflow overflow;
 
   /// {@template flutter.widgets.editableText.minLines}
   /// The minimum number of lines to occupy when the content spans fewer lines.
@@ -2499,6 +2502,7 @@ class EditableTextState extends State<EditableText>
                 readOnly: widget.readOnly,
                 hasFocus: _hasFocus,
                 maxLines: widget.maxLines,
+                overflow: widget.overflow,
                 minLines: widget.minLines,
                 expands: widget.expands,
                 strutStyle: widget.strutStyle,
@@ -2666,6 +2670,7 @@ class _Editable extends MultiChildRenderObjectWidget {
     required this.textWidthBasis,
     required this.hasFocus,
     required this.maxLines,
+    this.overflow = TextOverflow.clip,
     this.minLines,
     required this.expands,
     this.strutStyle,
@@ -2722,6 +2727,7 @@ class _Editable extends MultiChildRenderObjectWidget {
   final bool readOnly;
   final bool hasFocus;
   final int? maxLines;
+  final TextOverflow overflow;
   final int? minLines;
   final bool expands;
   final StrutStyle? strutStyle;
@@ -2770,6 +2776,7 @@ class _Editable extends MultiChildRenderObjectWidget {
       // readOnly: readOnly,
       // hasFocus: hasFocus,
       maxLines: maxLines,
+      overflow: overflow,
       // minLines: minLines,
       // expands: expands,
       strutStyle: strutStyle,

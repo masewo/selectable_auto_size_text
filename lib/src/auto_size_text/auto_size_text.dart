@@ -32,7 +32,7 @@ class AutoSizeText extends StatefulWidget {
     this.locale,
     this.softWrap,
     this.wrapWords = true,
-    this.overflow,
+    this.overflow = TextOverflow.clip,
     this.overflowReplacement,
     this.textScaleFactor,
     this.maxLines,
@@ -57,7 +57,7 @@ class AutoSizeText extends StatefulWidget {
     this.locale,
     this.softWrap,
     this.wrapWords = true,
-    this.overflow,
+    this.overflow = TextOverflow.clip,
     this.overflowReplacement,
     this.textScaleFactor,
     this.maxLines,
@@ -175,7 +175,7 @@ class AutoSizeText extends StatefulWidget {
   /// How visual overflow should be handled.
   ///
   /// Defaults to retrieving the value from the nearest [DefaultTextStyle] ancestor.
-  final TextOverflow? overflow;
+  final TextOverflow overflow;
 
   /// If the text is overflowing and does not fit its bounds, this widget is
   /// displayed instead.
@@ -426,7 +426,7 @@ class _AutoSizeTextState extends State<AutoSizeText> {
         textDirection: widget.textDirection,
         // locale: widget.locale,
         // softWrap: widget.softWrap,
-        // overflow: widget.overflow,
+        overflow: widget.overflow,
         textScaleFactor: 1,
         maxLines: maxLines,
         // semanticsLabel: widget.semanticsLabel,

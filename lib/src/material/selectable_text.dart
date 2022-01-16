@@ -214,6 +214,7 @@ class SelectableText extends StatefulWidget {
     ToolbarOptions? toolbarOptions,
     this.minLines,
     this.maxLines,
+    this.overflow = TextOverflow.clip,
     this.cursorWidth = 2.0,
     this.cursorHeight,
     this.cursorRadius,
@@ -262,6 +263,7 @@ class SelectableText extends StatefulWidget {
     ToolbarOptions? toolbarOptions,
     this.minLines,
     this.maxLines,
+    this.overflow = TextOverflow.clip,
     this.cursorWidth = 2.0,
     this.cursorHeight,
     this.cursorRadius,
@@ -353,6 +355,8 @@ class SelectableText extends StatefulWidget {
 
   /// {@macro flutter.widgets.editableText.maxLines}
   final int? maxLines;
+
+  final TextOverflow overflow;
 
   /// {@macro flutter.widgets.editableText.showCursor}
   final bool showCursor;
@@ -732,6 +736,7 @@ class _SelectableTextState extends State<SelectableText>
         toolbarOptions: widget.toolbarOptions,
         minLines: widget.minLines,
         maxLines: widget.maxLines ?? defaultTextStyle.maxLines,
+        overflow: widget.overflow,
         selectionColor: selectionColor,
         selectionControls:
             widget.selectionEnabled ? textSelectionControls : null,

@@ -16,7 +16,7 @@ class SelectableAutoSizeText extends StatelessWidget {
     this.locale,
     this.softWrap,
     this.wrapWords = true,
-    this.overflow,
+    this.overflow = TextOverflow.clip,
     this.overflowReplacement,
     this.textScaleFactor,
     this.maxLines,
@@ -36,7 +36,7 @@ class SelectableAutoSizeText extends StatelessWidget {
   final Locale? locale;
   final bool? softWrap;
   final bool wrapWords;
-  final TextOverflow? overflow;
+  final TextOverflow overflow;
   final Widget? overflowReplacement;
   final double? textScaleFactor;
   final int? maxLines;

@@ -2649,8 +2649,17 @@ class EditableTextState extends State<EditableText>
     if (newValue == textEditingValue) {
       return;
     }
-    textEditingValue = newValue;
     userUpdateTextEditingValue(newValue, cause);
+  }
+
+  @override
+  void insertTextPlaceholder(Size size) {
+    // TODO: implement insertTextPlaceholder
+  }
+
+  @override
+  void removeTextPlaceholder() {
+    // TODO: implement removeTextPlaceholder
   }
 }
 

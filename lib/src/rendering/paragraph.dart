@@ -1568,7 +1568,6 @@ class RenderParagraph extends RenderBox
 
   void _setTextEditingValue(
       TextEditingValue newValue, SelectionChangedCause cause) {
-    textSelectionDelegate.textEditingValue = newValue;
     textSelectionDelegate.userUpdateTextEditingValue(newValue, cause);
   }
 

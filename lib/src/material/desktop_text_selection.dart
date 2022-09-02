@@ -2,15 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'package:flutter/rendering.dart' hide RenderParagraph;
-import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart'
-    hide
-    TextSelectionControls,
-    ClipboardStatusNotifier,
-    TextSelectionHandleType,
-    ClipboardStatus,
-    ToolbarBuilder;
+import 'package:flutter/rendering.dart' hide RenderParagraph, TextSelectionHandleType;
 import 'package:flutter/material.dart'
     hide
     TextSelectionControls,
@@ -241,7 +233,6 @@ class _DesktopTextSelectionToolbar extends StatelessWidget {
     Key? key,
     required this.anchor,
     required this.children,
-    this.toolbarBuilder = _defaultToolbarBuilder,
   }) : assert(children.length > 0),
        super(key: key);
 
@@ -255,12 +246,6 @@ class _DesktopTextSelectionToolbar extends StatelessWidget {
   ///   * [DesktopTextSelectionToolbarButton], which builds a default
   ///     Material-style desktop text selection toolbar text button.
   final List<Widget> children;
-
-  /// {@macro flutter.material.TextSelectionToolbar.toolbarBuilder}
-  ///
-  /// The given anchor and isAbove can be used to position an arrow, as in the
-  /// default toolbar.
-  final ToolbarBuilder toolbarBuilder;
 
   // Builds a desktop toolbar in the Material style.
   static Widget _defaultToolbarBuilder(BuildContext context, Widget child) {
@@ -295,7 +280,7 @@ class _DesktopTextSelectionToolbar extends StatelessWidget {
         delegate: DesktopTextSelectionToolbarLayoutDelegate(
           anchor: anchor - localAdjustment,
         ),
-        child: toolbarBuilder(context, Column(
+        child: _defaultToolbarBuilder(context, Column(
           mainAxisSize: MainAxisSize.min,
           children: children,
         )),
@@ -363,7 +348,7 @@ class _DesktopTextSelectionToolbarButton extends StatelessWidget {
       child: TextButton(
         style: TextButton.styleFrom(
           alignment: Alignment.centerLeft,
-          primary: primary,
+          foregroundColor: primary,
           shape: const RoundedRectangleBorder(),
           minimumSize: const Size(kMinInteractiveDimension, 36.0),
           padding: _kToolbarButtonPadding,

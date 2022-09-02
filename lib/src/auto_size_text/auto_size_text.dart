@@ -281,7 +281,8 @@ class _AutoSizeTextState extends State<AutoSizeText> {
   }
 
   void _validateProperties(TextStyle style, int? maxLines) {
-    assert(widget.overflow == null || widget.overflowReplacement == null,
+    //assert(widget.overflow == null || widget.overflowReplacement == null,
+    assert(widget.overflowReplacement == null,
         'Either overflow or overflowReplacement must be null.');
     assert(maxLines == null || maxLines > 0,
         'MaxLines must be greater than or equal to 1.');

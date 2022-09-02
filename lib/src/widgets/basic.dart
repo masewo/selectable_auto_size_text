@@ -1,6 +1,5 @@
 import 'dart:ui' as ui show TextHeightBehavior;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide TextSelectionControls;
 import 'package:flutter/rendering.dart'
     hide RenderParagraph, PlaceholderSpanIndexSemanticsTag;

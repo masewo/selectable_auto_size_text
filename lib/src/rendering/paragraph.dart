@@ -16,11 +16,8 @@ import 'dart:ui' as ui
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/semantics.dart';
 import 'package:selectable_auto_size_text/src/widgets/editable_text.dart';
 import 'package:selectable_auto_size_text/src/widgets/text_selection.dart';
-
-import 'package:vector_math/vector_math_64.dart';
 
 import 'package:flutter/rendering.dart';
 
@@ -73,7 +70,7 @@ class PlaceholderSpanIndexSemanticsTag extends SemanticsTag {
   }
 
   @override
-  int get hashCode => hashValues(PlaceholderSpanIndexSemanticsTag, index);
+  int get hashCode => Object.hash(PlaceholderSpanIndexSemanticsTag, index);
 }
 
 /// A render object that displays a paragraph of text.
@@ -1559,7 +1556,7 @@ class RenderParagraph extends RenderBox
         extentOffset: math.min(nextSelection.extentOffset, textLength),
       );
     }
-    _handleSelectionChange(nextSelection, cause);
+    // _handleSelectionChange(nextSelection, cause);
     _setTextEditingValue(
       textSelectionDelegate.textEditingValue.copyWith(selection: nextSelection),
       cause,
@@ -1571,24 +1568,24 @@ class RenderParagraph extends RenderBox
     textSelectionDelegate.userUpdateTextEditingValue(newValue, cause);
   }
 
-  void _handleSelectionChange(
-    TextSelection nextSelection,
-    SelectionChangedCause cause,
-  ) {
-    // Changes made by the keyboard can sometimes be "out of band" for listening
-    // components, so always send those events, even if we didn't think it
-    // changed. Also, focusing an empty field is sent as a selection change even
-    // if the selection offset didn't change.
-    final bool focusingEmpty = nextSelection.baseOffset == 0 &&
-        nextSelection.extentOffset == 0 &&
-        !hasFocus;
-    if (nextSelection == selection &&
-        cause != SelectionChangedCause.keyboard &&
-        !focusingEmpty) {
-      return;
-    }
-    onSelectionChanged?.call(nextSelection, this, cause);
-  }
+  // void _handleSelectionChange(
+  //   TextSelection nextSelection,
+  //   SelectionChangedCause cause,
+  // ) {
+  //   // Changes made by the keyboard can sometimes be "out of band" for listening
+  //   // components, so always send those events, even if we didn't think it
+  //   // changed. Also, focusing an empty field is sent as a selection change even
+  //   // if the selection offset didn't change.
+  //   final bool focusingEmpty = nextSelection.baseOffset == 0 &&
+  //       nextSelection.extentOffset == 0 &&
+  //       !hasFocus;
+  //   if (nextSelection == selection &&
+  //       cause != SelectionChangedCause.keyboard &&
+  //       !focusingEmpty) {
+  //     return;
+  //   }
+  //   onSelectionChanged?.call(nextSelection, this, cause);
+  // }
 
   TextSelectionDelegate textSelectionDelegate;
 
@@ -1601,11 +1598,11 @@ class RenderParagraph extends RenderBox
     markNeedsSemanticsUpdate();
   }
 
-  @Deprecated(
-    'Uses the textSelectionDelegate.userUpdateTextEditingValue instead. '
-    'This feature was deprecated after v1.26.0-17.2.pre.',
-  )
-  SelectionChangedHandler? onSelectionChanged;
+  // @Deprecated(
+  //   'Uses the textSelectionDelegate.userUpdateTextEditingValue instead. '
+  //   'This feature was deprecated after v1.26.0-17.2.pre.',
+  // )
+  // SelectionChangedHandler? onSelectionChanged;
 
   void selectWordEdge({required SelectionChangedCause cause}) {
     _computeTextMetricsIfNeeded();

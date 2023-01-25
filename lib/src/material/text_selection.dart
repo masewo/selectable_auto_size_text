@@ -5,12 +5,6 @@
 import 'dart:math' as math;
 
 import 'package:flutter/rendering.dart' hide RenderParagraph, TextSelectionHandleType;
-import 'package:flutter/widgets.dart'
-    hide
-        TextSelectionControls,
-        ClipboardStatusNotifier,
-        TextSelectionHandleType,
-        ClipboardStatus;
 import 'package:flutter/material.dart'
     hide
         TextSelectionControls,

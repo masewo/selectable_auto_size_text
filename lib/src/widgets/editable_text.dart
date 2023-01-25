@@ -18,13 +18,6 @@ import 'package:flutter/material.dart'
 import 'package:flutter/rendering.dart' hide RenderParagraph, TextSelectionHandleType;
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart'
-    hide
-        TextSelectionControls,
-        TextSelectionOverlay,
-        ClipboardStatusNotifier,
-        TextSelectionHandleType,
-        ClipboardStatus;
 import 'package:selectable_auto_size_text/src/rendering/paragraph.dart';
 import 'package:selectable_auto_size_text/src/widgets/text_selection.dart';
 
@@ -450,7 +443,7 @@ class EditableText extends StatefulWidget {
     this.locale,
     this.textScaleFactor,
     this.maxLines = 1,
-    this.overflow  = TextOverflow.clip,
+    this.overflow = TextOverflow.clip,
     this.minLines,
     this.expands = false,
     this.forceLine = true,
@@ -1655,7 +1648,7 @@ class EditableTextState extends State<EditableText>
 
     if (!_didAutoFocus && widget.autofocus) {
       _didAutoFocus = true;
-      SchedulerBinding.instance!.addPostFrameCallback((_) {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           FocusScope.of(context).autofocus(widget.focusNode);
         }
@@ -1729,7 +1722,7 @@ class EditableTextState extends State<EditableText>
     _selectionOverlay = null;
     _focusAttachment!.detach();
     widget.focusNode.removeListener(_handleFocusChanged);
-    WidgetsBinding.instance!.removeObserver(this);
+    WidgetsBinding.instance.removeObserver(this);
     _clipboardStatus?.removeListener(_onChangedClipboardStatus);
     _clipboardStatus?.dispose();
     super.dispose();
@@ -2125,7 +2118,7 @@ class EditableTextState extends State<EditableText>
       return;
     }
     _showCaretOnScreenScheduled = true;
-    SchedulerBinding.instance!.addPostFrameCallback((Duration _) {
+    SchedulerBinding.instance.addPostFrameCallback((Duration _) {
       _showCaretOnScreenScheduled = false;
       if (_currentCaretRect == null || !_scrollController!.hasClients) {
         return;
@@ -2181,16 +2174,16 @@ class EditableTextState extends State<EditableText>
   @override
   void didChangeMetrics() {
     if (_lastBottomViewInset !=
-        WidgetsBinding.instance!.window.viewInsets.bottom) {
-      SchedulerBinding.instance!.addPostFrameCallback((Duration _) {
+        WidgetsBinding.instance.window.viewInsets.bottom) {
+      SchedulerBinding.instance.addPostFrameCallback((Duration _) {
         _selectionOverlay?.updateForScroll();
       });
       if (_lastBottomViewInset <
-          WidgetsBinding.instance!.window.viewInsets.bottom) {
+          WidgetsBinding.instance.window.viewInsets.bottom) {
         _scheduleShowCaretOnScreen();
       }
     }
-    _lastBottomViewInset = WidgetsBinding.instance!.window.viewInsets.bottom;
+    _lastBottomViewInset = WidgetsBinding.instance.window.viewInsets.bottom;
   }
 
   @pragma('vm:notify-debugger-on-exception')
@@ -2266,8 +2259,8 @@ class EditableTextState extends State<EditableText>
     _updateOrDisposeSelectionOverlayIfNeeded();
     if (_hasFocus) {
       // Listen for changing viewInsets, which indicates keyboard showing up.
-      WidgetsBinding.instance!.addObserver(this);
-      _lastBottomViewInset = WidgetsBinding.instance!.window.viewInsets.bottom;
+      WidgetsBinding.instance.addObserver(this);
+      _lastBottomViewInset = WidgetsBinding.instance.window.viewInsets.bottom;
       if (!widget.readOnly) {
         _scheduleShowCaretOnScreen();
       }
@@ -2277,7 +2270,7 @@ class EditableTextState extends State<EditableText>
             TextSelection.collapsed(offset: _value.text.length), null);
       }
     } else {
-      WidgetsBinding.instance!.removeObserver(this);
+      WidgetsBinding.instance.removeObserver(this);
       // Clear the selection and composition state if this widget lost focus.
       _value = TextEditingValue(text: _value.text);
       _currentPromptRectRange = null;
@@ -2290,7 +2283,7 @@ class EditableTextState extends State<EditableText>
       final Size size = renderEditable.size;
       final Matrix4 transform = renderEditable.getTransformTo(null);
       _textInputConnection!.setEditableSizeAndTransform(size, transform);
-      SchedulerBinding.instance!
+      SchedulerBinding.instance
           .addPostFrameCallback((Duration _) => _updateSizeAndTransform());
     }
   }
@@ -2306,7 +2299,7 @@ class EditableTextState extends State<EditableText>
             renderEditable.getLocalRectForCaret(currentTextPosition);
         _textInputConnection!.setCaretRect(caretRect);
       }
-      SchedulerBinding.instance!
+      SchedulerBinding.instance
           .addPostFrameCallback((Duration _) => _updateCaretRectIfNeeded());
     }
   }
@@ -2355,6 +2348,7 @@ class EditableTextState extends State<EditableText>
   ///
   /// Returns `false` if a toolbar couldn't be shown, such as when the toolbar
   /// is already shown, or when no text selection currently exists.
+  @override
   bool showToolbar() {
     // Web is using native dom elements to enable clipboard functionality of the
     // toolbar: copy, paste, select, cut. It might also provide additional
@@ -2690,7 +2684,7 @@ class _Editable extends MultiChildRenderObjectWidget {
     required this.value,
     required this.startHandleLayerLink,
     required this.endHandleLayerLink,
-    this.cursorColor,
+    // this.cursorColor,
     this.backgroundCursorColor,
     required this.showCursor,
     required this.forceLine,
@@ -2747,7 +2741,7 @@ class _Editable extends MultiChildRenderObjectWidget {
 
   final InlineSpan inlineSpan;
   final TextEditingValue value;
-  final Color? cursorColor;
+  // final Color? cursorColor;
   final LayerLink startHandleLayerLink;
   final LayerLink endHandleLayerLink;
   final Color? backgroundCursorColor;

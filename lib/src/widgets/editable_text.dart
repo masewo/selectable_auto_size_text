@@ -15,7 +15,7 @@ import 'package:flutter/material.dart'
         ClipboardStatusNotifier,
         TextSelectionHandleType,
         ClipboardStatus;
-import 'package:flutter/rendering.dart' hide RenderParagraph;
+import 'package:flutter/rendering.dart' hide RenderParagraph, TextSelectionHandleType;
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart'
@@ -2660,6 +2660,26 @@ class EditableTextState extends State<EditableText>
   @override
   void removeTextPlaceholder() {
     // TODO: implement removeTextPlaceholder
+  }
+
+  @override
+  void didChangeInputControl(TextInputControl? oldControl, TextInputControl? newControl) {
+    if (_hasFocus && _hasInputConnection) {
+      oldControl?.hide();
+      newControl?.show();
+    }
+  }
+
+  @override
+  void performSelector(String selectorName) {
+    final Intent? intent = intentForMacOSSelector(selectorName);
+
+    if (intent != null) {
+      final BuildContext? primaryContext = primaryFocus?.context;
+      if (primaryContext != null) {
+        Actions.invoke(primaryContext, intent);
+      }
+    }
   }
 }
 

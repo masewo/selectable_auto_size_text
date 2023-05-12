@@ -330,16 +330,12 @@ class TextSelectionOverlay {
     this.dragStartBehavior = DragStartBehavior.start,
     this.onSelectionHandleTapped,
     this.clipboardStatus,
+    this.contextMenuBuilder,
+    required TextMagnifierConfiguration magnifierConfiguration,
   }) : _handlesVisible = handlesVisible,
        _value = value {
-    final OverlayState? overlay = Overlay.of(context, rootOverlay: true);
-    assert(
-      overlay != null,
-      'No Overlay widget exists above $context.\n'
-      'Usually the Navigator created by WidgetsApp provides the overlay. Perhaps your '
-      'app content was created above the Navigator with the WidgetsApp builder parameter.',
-    );
-    _toolbarController = AnimationController(duration: fadeDuration, vsync: overlay!);
+    final OverlayState overlay = Overlay.of(context, rootOverlay: true);
+    _toolbarController = AnimationController(duration: fadeDuration, vsync: overlay);
   }
 
   /// The context in which the selection handles should appear.
@@ -422,6 +418,11 @@ class TextSelectionOverlay {
   late AnimationController _toolbarController;
   Animation<double> get _toolbarOpacity => _toolbarController.view;
 
+  /// {@macro flutter.widgets.EditableText.contextMenuBuilder}
+  ///
+  /// If not provided, no context menu will be built.
+  final WidgetBuilder? contextMenuBuilder;
+
   /// Retrieve current value.
   @visibleForTesting
   TextEditingValue get value => _value;
@@ -478,7 +479,7 @@ class TextSelectionOverlay {
       OverlayEntry(builder: (BuildContext context) => _buildHandle(context, _TextSelectionHandlePosition.end)),
     ];
 
-    Overlay.of(context, rootOverlay: true, debugRequiredFor: debugRequiredFor)!
+    Overlay.of(context, rootOverlay: true, debugRequiredFor: debugRequiredFor)
       .insertAll(_handles!);
   }
 
@@ -495,7 +496,7 @@ class TextSelectionOverlay {
   void showToolbar() {
     assert(_toolbar == null);
     _toolbar = OverlayEntry(builder: _buildToolbar);
-    Overlay.of(context, rootOverlay: true, debugRequiredFor: debugRequiredFor)!.insert(_toolbar!);
+    Overlay.of(context, rootOverlay: true, debugRequiredFor: debugRequiredFor).insert(_toolbar!);
     _toolbarController.forward(from: 0.0);
   }
 
@@ -688,6 +689,7 @@ class _TextSelectionHandleOverlay extends StatefulWidget {
     required this.selectionControls,
     required this.selectionDelegate,
     this.dragStartBehavior = DragStartBehavior.start,
+    this.contextMenuBuilder,
   }) : super(key: key);
 
   final TextSelection selection;
@@ -700,6 +702,11 @@ class _TextSelectionHandleOverlay extends StatefulWidget {
   final TextSelectionControls selectionControls;
   final DragStartBehavior dragStartBehavior;
   final TextSelectionDelegate selectionDelegate;
+
+  /// {@macro flutter.widgets.EditableText.contextMenuBuilder}
+  ///
+  /// If not provided, no context menu will be built.
+  final WidgetBuilder? contextMenuBuilder;
 
   @override
   _TextSelectionHandleOverlayState createState() => _TextSelectionHandleOverlayState();

@@ -221,7 +221,7 @@ class AutoSizeText extends StatefulWidget {
   final String? semanticsLabel;
 
   @override
-  _AutoSizeTextState createState() => _AutoSizeTextState();
+  State<AutoSizeText> createState() => _AutoSizeTextState();
 }
 
 class _AutoSizeTextState extends State<AutoSizeText> {

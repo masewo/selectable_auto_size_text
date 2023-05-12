@@ -74,7 +74,7 @@ class DefaultTextStyle extends InheritedTheme {
   /// ancestor". To replace a non-null [maxLines] from an ancestor with the null
   /// value (to remove the restriction on number of lines), manually obtain the
   /// ambient [DefaultTextStyle] using [DefaultTextStyle.of], then create a new
-  /// [DefaultTextStyle] using the [new DefaultTextStyle] constructor directly.
+  /// [DefaultTextStyle] using the [DefaultTextStyle] constructor directly.
   /// See the source below for an example of how to do this (since that's
   /// essentially what this constructor does).
   static Widget merge({
@@ -517,7 +517,7 @@ class Text extends StatelessWidget {
     if (style == null || style!.inherit) {
       effectiveTextStyle = defaultTextStyle.style.merge(style);
     }
-    if (MediaQuery.boldTextOverride(context)) {
+    if (MediaQuery.boldTextOf(context)) {
       effectiveTextStyle = effectiveTextStyle!.merge(const TextStyle(fontWeight: FontWeight.bold));
     }
     Widget result = RichText(

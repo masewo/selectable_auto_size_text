@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 import 'package:flutter/gestures.dart';
-import 'package:flutter/rendering.dart' hide RenderParagraph, TextSelectionHandleType;
 import 'package:flutter/cupertino.dart'
     hide
     TextSelectionControls,
